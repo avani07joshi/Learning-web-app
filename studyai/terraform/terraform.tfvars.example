@@ -1,0 +1,5 @@
+app_name          = "studyai"
+environment       = "local"
+db_password       = "studyai_pass"
+jwt_secret        = "change_this_to_long_random_string"
+anthropic_api_key = "sk-ant-..."

@@ -1,0 +1,70 @@
+name: StudyAI CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: cd backend && pip install -r requirements.txt
+
+      - name: Lint with ruff
+        run: pip install ruff && ruff check backend/ --ignore E501
+
+      - name: Type check
+        run: pip install mypy && cd backend && mypy main.py --ignore-missing-imports
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and build
+        run: cd frontend && npm install && npm run build
+
+  build-and-push:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        run: docker build -t studyai-backend:${{ github.sha }} ./backend
+
+      - name: Build frontend image
+        run: docker build -t studyai-frontend:${{ github.sha }} ./frontend
+
+      - name: Smoke test — compose up
+        run: |
+          cp backend/.env.example backend/.env
+          echo "ANTHROPIC_API_KEY=dummy" >> backend/.env
+          docker compose up -d db backend
+          sleep 10
+          curl --fail http://localhost:8000/health || exit 1
+          docker compose down
+
+      - name: Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Backend image: studyai-backend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Frontend image: studyai-frontend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Health check passed" >> $GITHUB_STEP_SUMMARY
