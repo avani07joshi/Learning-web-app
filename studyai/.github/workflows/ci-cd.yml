@@ -54,9 +54,22 @@ jobs:
         run: docker build -t studyai-frontend:${{ github.sha }} ./frontend
 
       - name: Smoke test — compose up
+        env:
+          DATABASE_URL: postgresql://studyai:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ vars.POSTGRES_DB }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_ALGORITHM: ${{ vars.JWT_ALGORITHM }}
+          ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
-          cp backend/.env.example backend/.env
-          echo "ANTHROPIC_API_KEY=dummy" >> backend/.env
+          cat > backend/.env <<EOF
+          DATABASE_URL=${DATABASE_URL}
+          JWT_SECRET=${JWT_SECRET}
+          JWT_ALGORITHM=${JWT_ALGORITHM}
+          ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          FRONTEND_URL=${FRONTEND_URL}
+          EOF
           docker compose up -d db backend
           sleep 10
           curl --fail http://localhost:8000/health || exit 1

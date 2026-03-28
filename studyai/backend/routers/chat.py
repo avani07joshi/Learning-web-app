@@ -1,5 +1,5 @@
 import os
-import httpx
+import google.generativeai as genai
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -58,31 +58,31 @@ async def send_message(
         .limit(20)
         .all()
     )
-    history_messages = [{"role": m.role, "content": m.content} for m in history]
+    # Convert history to Gemini format (uses "model" instead of "assistant")
+    gemini_history = [
+        {
+            "role": "user" if m.role == "user" else "model",
+            "parts": [m.content],
+        }
+        for m in history
+    ]
 
-    # Call Anthropic API
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_key:
-        raise HTTPException(status_code=500, detail="Anthropic API key not configured")
+    # Call Gemini API
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="Gemini API key not configured")
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": anthropic_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 1000,
-                "system": system_prompt,
-                "messages": history_messages + [{"role": "user", "content": body.message}],
-            },
+    try:
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=system_prompt,
         )
-        if response.status_code != 200:
-            raise HTTPException(status_code=502, detail="AI service error")
-        ai_reply = response.json()["content"][0]["text"]
+        chat = model.start_chat(history=gemini_history)
+        response = chat.send_message(body.message)
+        ai_reply = response.text
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
 
     # Save user message
     user_msg = ChatMessage(
