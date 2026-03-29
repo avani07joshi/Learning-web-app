@@ -17,13 +17,13 @@ jobs:
           python-version: '3.11'
 
       - name: Install deps
-        run: cd backend && pip install -r requirements.txt
+        run: cd studyai/backend && pip install -r requirements.txt
 
       - name: Lint with ruff
-        run: pip install ruff && ruff check backend/ --ignore E501
+        run: pip install ruff && ruff check studyai/backend/ --ignore E501
 
       - name: Type check
-        run: pip install mypy && cd backend && mypy main.py --ignore-missing-imports
+        run: pip install mypy && cd studyai/backend && mypy main.py --ignore-missing-imports
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           node-version: '20'
 
       - name: Install and build
-        run: cd frontend && npm install && npm run build
+        run: cd studyai/frontend && npm install && npm run build
 
   build-and-push:
     needs: [test-backend, test-frontend]
@@ -48,21 +48,21 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build backend image
-        run: docker build -t studyai-backend:${{ github.sha }} ./backend
+        run: docker build -t studyai-backend:${{ github.sha }} ./studyai/backend
 
       - name: Build frontend image
-        run: docker build -t studyai-frontend:${{ github.sha }} ./frontend
+        run: docker build -t studyai-frontend:${{ github.sha }} ./studyai/frontend
 
       - name: Smoke test — compose up
         env:
-          DATABASE_URL: postgresql://studyai:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ vars.POSTGRES_DB }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_ALGORITHM: ${{ vars.JWT_ALGORITHM }}
           ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
-          cat > backend/.env <<EOF
+          cat > studyai/backend/.env <<EOF
           DATABASE_URL=${DATABASE_URL}
           JWT_SECRET=${JWT_SECRET}
           JWT_ALGORITHM=${JWT_ALGORITHM}
@@ -70,8 +70,8 @@ jobs:
           GEMINI_API_KEY=${GEMINI_API_KEY}
           FRONTEND_URL=${FRONTEND_URL}
           EOF
-          docker compose up -d db backend
-          sleep 10
+          cd studyai && docker compose up -d backend
+          sleep 15
           curl --fail http://localhost:8000/health || exit 1
           docker compose down
 
