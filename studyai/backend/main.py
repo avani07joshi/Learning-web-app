@@ -7,15 +7,10 @@ import os
 
 app = FastAPI(title="StudyAI API", version="1.0.0")
 
-_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        _frontend_url,
-        "http://localhost:5173",
-        "http://localhost:3001",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
