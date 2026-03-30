@@ -11,7 +11,7 @@ from typing import Optional
 router = APIRouter(prefix="/api/materials", tags=["materials"])
 
 
-@router.get("/", response_model=list[MaterialOut])
+@router.get("", response_model=list[MaterialOut])
 def get_materials(
     topic: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -23,7 +23,7 @@ def get_materials(
     return query.all()
 
 
-@router.post("/", response_model=MaterialOut)
+@router.post("", response_model=MaterialOut)
 def create_material(
     body: MaterialCreate,
     db: Session = Depends(get_db),

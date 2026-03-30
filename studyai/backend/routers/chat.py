@@ -25,7 +25,7 @@ def get_messages(
     )
 
 
-@router.post("/", response_model=ChatMessageOut)
+@router.post("", response_model=ChatMessageOut)
 async def send_message(
     body: ChatSend,
     db: Session = Depends(get_db),

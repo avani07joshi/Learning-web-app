@@ -43,7 +43,7 @@ def checkin(
     return StreakOut(study_dates=streak.study_dates, current_streak=streak.current_streak)
 
 
-@router.get("/", response_model=StreakOut)
+@router.get("", response_model=StreakOut)
 def get_streak(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
