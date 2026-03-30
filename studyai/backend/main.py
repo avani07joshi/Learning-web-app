@@ -5,7 +5,7 @@ from database import engine, Base
 from routers import auth, materials, chat, quiz, streak
 import os
 
-app = FastAPI(title="StudyAI API", version="1.0.0")
+app = FastAPI(title="StudyAI API", version="1.0.0", redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,

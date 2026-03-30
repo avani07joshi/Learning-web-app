@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from groq import Groq
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -67,22 +67,23 @@ async def send_message(
         for m in history
     ]
 
-    # Call Gemini API
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        raise HTTPException(status_code=500, detail="Gemini API key not configured")
+    # Call Groq API
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        raise HTTPException(status_code=500, detail="Groq API key not configured")
 
     try:
-        genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
-        # Prepend system prompt as first exchange in history
-        full_history = [
-            {"role": "user", "parts": [system_prompt]},
-            {"role": "model", "parts": ["Understood. I'll follow those instructions."]},
-        ] + gemini_history
-        chat = model.start_chat(history=full_history)
-        response = chat.send_message(body.message)
-        ai_reply = response.text
+        client = Groq(api_key=groq_key)
+        messages = [{"role": "system", "content": system_prompt}]
+        for m in gemini_history:
+            role = "user" if m["role"] == "user" else "assistant"
+            messages.append({"role": role, "content": m["parts"][0]})
+        messages.append({"role": "user", "content": body.message})
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+        )
+        ai_reply = response.choices[0].message.content
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
 
