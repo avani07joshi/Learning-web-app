@@ -10,4 +10,4 @@ python-multipart
 httpx
 pydantic[email]
 prometheus-fastapi-instrumentator
-google-genai
+google-generativeai

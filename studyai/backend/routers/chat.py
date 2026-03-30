@@ -1,6 +1,5 @@
 import os
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -74,17 +73,15 @@ async def send_message(
         raise HTTPException(status_code=500, detail="Gemini API key not configured")
 
     try:
-        client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1"})
-        contents = []
-        for m in gemini_history:
-            role = "user" if m["role"] == "user" else "model"
-            contents.append(types.Content(role=role, parts=[types.Part(text=m["parts"][0])]))
-        contents.append(types.Content(role="user", parts=[types.Part(text=body.message)]))
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(system_instruction=system_prompt),
-        )
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        # Prepend system prompt as first exchange in history
+        full_history = [
+            {"role": "user", "parts": [system_prompt]},
+            {"role": "model", "parts": ["Understood. I'll follow those instructions."]},
+        ] + gemini_history
+        chat = model.start_chat(history=full_history)
+        response = chat.send_message(body.message)
         ai_reply = response.text
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
