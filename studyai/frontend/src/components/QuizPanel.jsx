@@ -38,7 +38,7 @@ export default function QuizPanel({ activeTopic }) {
   const fetchNext = async () => {
     setLoading(true)
     try {
-      const res = await api.post('/chat/', {
+      const res = await api.post('/chat', {
         message: `Generate a single MCQ about ${activeTopic}. Respond ONLY with JSON: {"question":"...","options":["A","B","C","D"],"correct_index":0}`,
         topic: activeTopic,
       })

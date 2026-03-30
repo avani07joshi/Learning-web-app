@@ -15,9 +15,9 @@ export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded
     setLoading(true)
     try {
       if (activeTab === 'url') {
-        await api.post('/materials/', { type: 'url', label: urlLabel || url, content: url, topic: activeTopic })
+        await api.post('/materials', { type: 'url', label: urlLabel || url, content: url, topic: activeTopic })
       } else if (activeTab === 'text') {
-        await api.post('/materials/', { type: 'text', label: textLabel, content: text, topic: activeTopic })
+        await api.post('/materials', { type: 'text', label: textLabel, content: text, topic: activeTopic })
       } else if (activeTab === 'pdf' && file) {
         const fd = new FormData()
         fd.append('file', file)

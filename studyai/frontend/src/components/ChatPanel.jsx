@@ -31,7 +31,7 @@ export default function ChatPanel({ activeTopic, currentUser }) {
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', content: msg }])
     setIsLoading(true)
     try {
-      const res = await api.post('/chat/', { message: msg, topic: activeTopic })
+      const res = await api.post('/chat', { message: msg, topic: activeTopic })
       setMessages(prev => [...prev, res.data])
     } catch {
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: 'Sorry, something went wrong.' }])
