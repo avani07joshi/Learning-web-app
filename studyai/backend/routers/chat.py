@@ -74,14 +74,14 @@ async def send_message(
         raise HTTPException(status_code=500, detail="Gemini API key not configured")
 
     try:
-        client = genai.Client(api_key=gemini_key)
+        client = genai.Client(api_key=gemini_key, http_options={"api_version": "v1"})
         contents = []
         for m in gemini_history:
             role = "user" if m["role"] == "user" else "model"
             contents.append(types.Content(role=role, parts=[types.Part(text=m["parts"][0])]))
         contents.append(types.Content(role="user", parts=[types.Part(text=body.message)]))
         response = client.models.generate_content(
-            model="gemini-1.5-flash-latest",
+            model="gemini-1.5-flash",
             contents=contents,
             config=types.GenerateContentConfig(system_instruction=system_prompt),
         )
