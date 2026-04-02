@@ -1,73 +1,120 @@
-# StudyAI — Full Stack Learning App
+# StudyAI — AI-Powered Personal Learning App
+
+A full-stack web app that helps you study smarter using AI chat, quizzes, and study material management.
+
+**Live:** [Frontend on Vercel](https://learning-web-app.vercel.app) · [Backend on Render](https://learning-web-app.onrender.com)
+
+---
 
 ## Stack
-- **Frontend**: React + Vite (Docker → Nginx)
-- **Backend**: Python FastAPI + SQLAlchemy (Docker → Uvicorn)
-- **Database**: PostgreSQL 16 (Docker volume)
-- **Proxy**: Nginx (routes /api → backend, / → frontend)
-- **Monitoring**: Prometheus + Grafana
-- **IaC**: Terraform (docker provider)
-- **CI/CD**: GitHub Actions
 
-## Quick Start (Docker Compose)
+| Layer | Tech |
+|-------|------|
+| Frontend | React + Vite, deployed on Vercel |
+| Backend | FastAPI + SQLAlchemy, deployed on Render |
+| Database | PostgreSQL via Supabase |
+| AI | Groq (llama-3.3-70b-versatile) |
+| Auth | JWT (python-jose) + bcrypt |
+| CI/CD | GitHub Actions |
+
+---
+
+## Features
+
+- **Chat** — AI tutor for any topic, with context from your uploaded study materials
+- **Quiz** — AI-generated MCQs to test your knowledge
+- **Review** — Activity calendar, streak tracking, and weak area analysis
+- **Materials** — Upload PDFs, paste text, or add URLs as study sources
+- **Topics** — Separate workspaces per topic (System Design, AWS, etc.)
+
+---
+
+## Local Development
+
+### Backend
 
 ```bash
-cp backend/.env.example backend/.env
-# Edit backend/.env — add your ANTHROPIC_API_KEY
-docker compose up --build
+cd studyai/backend
+python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env   # fill in values
+uvicorn main:app --reload --port 8000
 ```
 
-| Service    | URL                          |
-|------------|------------------------------|
-| App        | http://localhost:80          |
-| API docs   | http://localhost:80/docs     |
-| Grafana    | http://localhost:3000        |
-| Prometheus | http://localhost:9090        |
+`.env` values needed:
+```
+DATABASE_URL=postgresql://...      # Supabase session pooler URL (port 6543)
+JWT_SECRET=your-secret-key
+GROQ_API_KEY=your-groq-key
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+FRONTEND_URL=http://localhost:5173
+```
 
-Grafana login: `admin` / `studyai123`
-
-## Dev without Docker
+### Frontend
 
 ```bash
-# Backend
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # set DATABASE_URL to local postgres
-uvicorn main:app --reload --port 8000
-
-# Frontend
-cd frontend
+cd studyai/frontend
 npm install
+echo "VITE_API_URL=http://localhost:8000" > .env.local
 npm run dev
 ```
 
-## Terraform (local Docker)
+---
 
-```bash
-cd terraform
-cp terraform.tfvars.example terraform.tfvars  # fill in secrets
-terraform init
-terraform plan
-terraform apply
-```
+## Deployment
+
+| Service | Branch | Config |
+|---------|--------|--------|
+| Render (backend) | `dev` | Root dir: `studyai/backend` |
+| Vercel (frontend) | `main` | Root dir: `studyai/frontend` |
+| Supabase | — | Session pooler on port 6543 (IPv4 compatible) |
+
+Environment variables are set directly in Render and Vercel dashboards.
+
+---
+
+## API Docs
+
+Available at `https://learning-web-app.onrender.com/docs` (Swagger UI).
+
+Key endpoints:
+- `POST /api/auth/register` — create account
+- `POST /api/auth/login` — get JWT token
+- `GET /api/materials` — list study materials
+- `POST /api/chat` — send message to AI tutor
+- `GET /api/streak` — get study streak
+
+---
 
 ## CI/CD
 
-Push to `main` → GitHub Actions runs:
-1. Python lint (ruff) + type check (mypy)
-2. Frontend build
-3. Docker build both images
-4. Smoke test (health check against `/health`)
+Push to `dev` → GitHub Actions runs:
+1. Python lint (ruff)
+2. mypy type check
+3. Frontend build
 
-## Folder Structure
+Push to `main` → Vercel auto-deploys frontend.
+Render watches `dev` branch and auto-deploys backend.
+
+---
+
+## Project Structure
 
 ```
 studyai/
-├── backend/         FastAPI app
-├── frontend/        React + Vite app
-├── nginx/           Reverse proxy config
-├── monitoring/      Prometheus + Grafana
-├── terraform/       Infrastructure as code
-└── .github/         CI/CD workflows
+├── backend/
+│   ├── routers/        API route handlers (auth, chat, materials, quiz, streak)
+│   ├── models/         SQLAlchemy ORM models
+│   ├── schemas/        Pydantic request/response schemas
+│   ├── core/           Auth utilities (JWT, bcrypt, dependencies)
+│   ├── main.py         FastAPI app entry point
+│   ├── database.py     DB connection + session
+│   └── requirements.txt
+└── frontend/
+    ├── src/
+    │   ├── pages/      Login, Register, Dashboard
+    │   ├── components/ ChatPanel, QuizPanel, ReviewPanel, MaterialsPanel, Sidebar
+    │   ├── context/    AuthContext
+    │   └── api/        Axios instance with JWT interceptor
+    └── vercel.json     SPA routing config
 ```
