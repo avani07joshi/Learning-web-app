@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import api from '../api/axios'
 
-export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded }) {
+export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded, addToast }) {
   const [activeTab, setActiveTab] = useState('url')
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState('')
@@ -25,7 +25,9 @@ export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded
       }
       onMaterialAdded()
       onClose()
-    } catch {
+      addToast('Material added', 'success')
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to add material')
     } finally {
       setLoading(false)
     }

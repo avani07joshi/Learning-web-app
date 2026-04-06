@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from database import engine, Base
-from routers import auth, materials, chat, quiz, streak
+from routers import auth, materials, chat, quiz, streak, topics
 import os
 
 app = FastAPI(title="StudyAI API", version="1.0.0", redirect_slashes=False)
@@ -23,6 +23,7 @@ app.include_router(materials.router)
 app.include_router(chat.router)
 app.include_router(quiz.router)
 app.include_router(streak.router)
+app.include_router(topics.router)
 
 
 @app.on_event("startup")

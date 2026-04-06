@@ -7,11 +7,14 @@ import QuizPanel from '../components/QuizPanel'
 import ReviewPanel from '../components/ReviewPanel'
 import MaterialsPanel from '../components/MaterialsPanel'
 import AddMaterialModal from '../components/AddMaterialModal'
+import { useToast, ToastContainer } from '../components/Toast'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
+  const { toasts, addToast } = useToast()
   const [activeTab, setActiveTab] = useState('chat')
-  const [activeTopic, setActiveTopic] = useState('System Design')
+  const [activeTopic, setActiveTopic] = useState(null)
+  const [topics, setTopics] = useState([])
   const [streak, setStreak] = useState({})
   const [materials, setMaterials] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
@@ -20,10 +23,52 @@ export default function Dashboard() {
     api.post('/streak/checkin').catch(() => {})
     api.get('/streak').then(r => setStreak(r.data)).catch(() => {})
     api.get('/materials').then(r => setMaterials(r.data)).catch(() => {})
+    api.get('/topics').then(r => {
+      setTopics(r.data)
+      if (r.data.length > 0) setActiveTopic(r.data[0].name)
+    }).catch(() => {})
   }, [])
 
   const refreshMaterials = () => {
     api.get('/materials').then(r => setMaterials(r.data)).catch(() => {})
+  }
+
+  const refreshTopics = () => {
+    api.get('/topics').then(r => setTopics(r.data)).catch(() => {})
+  }
+
+  const handleAddTopic = async (name) => {
+    try {
+      await api.post('/topics', { name })
+      const res = await api.get('/topics')
+      setTopics(res.data)
+      setActiveTopic(name)
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to add topic'
+      addToast(msg)
+    }
+  }
+
+  const handleDeleteTopic = async (topicId) => {
+    try {
+      await api.delete(`/topics/${topicId}`)
+      const res = await api.get('/topics')
+      setTopics(res.data)
+      if (res.data.length > 0) setActiveTopic(res.data[0].name)
+      else setActiveTopic(null)
+    } catch {
+      addToast('Failed to delete topic')
+    }
+  }
+
+  const handleQuizAnswer = async (topicId) => {
+    if (!topicId) return
+    try {
+      await api.patch(`/topics/${topicId}/progress`)
+      refreshTopics()
+    } catch {
+      // non-critical, don't toast
+    }
   }
 
   return (
@@ -50,21 +95,33 @@ export default function Dashboard() {
 
       {/* Main Layout */}
       <div style={styles.main}>
-        {/* Sidebar */}
         <Sidebar
           activeTopic={activeTopic}
           setActiveTopic={setActiveTopic}
+          topics={topics}
+          onAddTopic={handleAddTopic}
+          onDeleteTopic={handleDeleteTopic}
           onAddMaterial={() => setShowAddModal(true)}
         />
 
-        {/* Center Panel */}
         <div style={styles.center}>
-          {activeTab === 'chat' && <ChatPanel activeTopic={activeTopic} currentUser={user} />}
-          {activeTab === 'quiz' && <QuizPanel activeTopic={activeTopic} />}
-          {activeTab === 'review' && <ReviewPanel activeTopic={activeTopic} materials={materials} />}
+          {activeTopic ? (
+            <>
+              {activeTab === 'chat' && <ChatPanel activeTopic={activeTopic} currentUser={user} addToast={addToast} />}
+              {activeTab === 'quiz' && (
+                <QuizPanel
+                  activeTopic={activeTopic}
+                  addToast={addToast}
+                  onAnswered={() => handleQuizAnswer(topics.find(t => t.name === activeTopic)?.id)}
+                />
+              )}
+              {activeTab === 'review' && <ReviewPanel activeTopic={activeTopic} materials={materials} />}
+            </>
+          ) : (
+            <div style={styles.noTopic}>Add a topic from the sidebar to get started</div>
+          )}
         </div>
 
-        {/* Right Panel — Materials */}
         <div style={styles.right}>
           <div style={styles.rightHeader}>Materials</div>
           <MaterialsPanel
@@ -72,6 +129,7 @@ export default function Dashboard() {
             materials={materials.filter(m => m.topic === activeTopic)}
             onMaterialAdded={refreshMaterials}
             onAddClick={() => setShowAddModal(true)}
+            addToast={addToast}
           />
         </div>
       </div>
@@ -81,8 +139,11 @@ export default function Dashboard() {
           activeTopic={activeTopic}
           onClose={() => setShowAddModal(false)}
           onMaterialAdded={refreshMaterials}
+          addToast={addToast}
         />
       )}
+
+      <ToastContainer toasts={toasts} />
     </div>
   )
 }
@@ -114,6 +175,7 @@ const styles = {
   },
   main: { display: 'flex', flex: 1, overflow: 'hidden' },
   center: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  noTopic: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: '14px' },
   right: {
     width: '300px', background: 'var(--bg2)', borderLeft: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',

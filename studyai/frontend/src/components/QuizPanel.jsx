@@ -1,18 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '../api/axios'
 
-const INITIAL_Q = {
-  question: 'Which consistency model guarantees that all nodes see the same data at the same time?',
-  options: ['Eventual Consistency', 'Strong Consistency', 'Causal Consistency', 'Read-your-writes'],
-  correct_index: 1,
-}
-
-export default function QuizPanel({ activeTopic }) {
-  const [currentQ, setCurrentQ] = useState(INITIAL_Q)
+export default function QuizPanel({ activeTopic, addToast, onAnswered }) {
+  const [currentQ, setCurrentQ] = useState(null)
   const [selected, setSelected] = useState(null)
   const [answered, setAnswered] = useState(false)
   const [score, setScore] = useState({ correct: 0, total: 0 })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setCurrentQ(null)
+    setSelected(null)
+    setAnswered(false)
+    setScore({ correct: 0, total: 0 })
+    fetchNext()
+  }, [activeTopic])
 
   const handleAnswer = async (idx) => {
     if (answered) return
@@ -32,6 +34,7 @@ export default function QuizPanel({ activeTopic }) {
       is_correct: isCorrect,
     }).catch(() => {})
 
+    if (onAnswered) onAnswered()
     setTimeout(() => fetchNext(), 1500)
   }
 
@@ -39,17 +42,18 @@ export default function QuizPanel({ activeTopic }) {
     setLoading(true)
     try {
       const res = await api.post('/chat', {
-        message: `Generate a single MCQ about ${activeTopic}. Respond ONLY with JSON: {"question":"...","options":["A","B","C","D"],"correct_index":0}`,
+        message: `Generate a single MCQ about ${activeTopic}. Respond ONLY with JSON (no extra text): {"question":"...","options":["A","B","C","D"],"correct_index":0}`,
         topic: activeTopic,
       })
       const text = res.data.content
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        setCurrentQ(parsed)
+        setCurrentQ(JSON.parse(jsonMatch[0]))
+      } else {
+        addToast('Could not parse question, trying again...')
       }
     } catch {
-      setCurrentQ(INITIAL_Q)
+      addToast('Failed to load question')
     } finally {
       setSelected(null)
       setAnswered(false)
@@ -71,8 +75,8 @@ export default function QuizPanel({ activeTopic }) {
         <span style={styles.topic}>{activeTopic}</span>
       </div>
 
-      {loading ? (
-        <div style={styles.loading}>Generating next question...</div>
+      {loading || !currentQ ? (
+        <div style={styles.loading}>Generating question...</div>
       ) : (
         <div style={styles.card}>
           <p style={styles.question}>{currentQ.question}</p>

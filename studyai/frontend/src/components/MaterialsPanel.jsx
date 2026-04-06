@@ -2,16 +2,25 @@ import api from '../api/axios'
 
 const TYPE_ICONS = { url: '🔗', text: '📝', pdf: '📄' }
 
-export default function MaterialsPanel({ activeTopic, materials, onMaterialAdded, onAddClick }) {
-  const deleteMaterial = async (id) => {
-    await api.delete(`/materials/${id}`).catch(() => {})
-    onMaterialAdded()
+export default function MaterialsPanel({ activeTopic, materials, onMaterialAdded, onAddClick, addToast }) {
+  const deleteMaterial = async (id, label) => {
+    if (!window.confirm(`Delete "${label}"?`)) return
+    try {
+      await api.delete(`/materials/${id}`)
+      onMaterialAdded()
+      addToast('Material deleted', 'success')
+    } catch {
+      addToast('Failed to delete material')
+    }
   }
 
   return (
     <div style={styles.panel}>
       {materials.length === 0 ? (
-        <div style={styles.empty}>No materials for {activeTopic}</div>
+        <div style={styles.emptyState}>
+          <div style={styles.emptyText}>No materials for {activeTopic}</div>
+          <button style={styles.emptyBtn} onClick={onAddClick}>+ Add your first source</button>
+        </div>
       ) : (
         <div style={styles.list}>
           {materials.map(m => (
@@ -21,19 +30,26 @@ export default function MaterialsPanel({ activeTopic, materials, onMaterialAdded
                 <div style={styles.label}>{m.label}</div>
                 <div style={styles.date}>{new Date(m.created_at).toLocaleDateString()}</div>
               </div>
-              <button style={styles.deleteBtn} onClick={() => deleteMaterial(m.id)}>×</button>
+              <button style={styles.deleteBtn} onClick={() => deleteMaterial(m.id, m.label)}>×</button>
             </div>
           ))}
         </div>
       )}
-      <button style={styles.addBtn} onClick={onAddClick}>+ Add source</button>
+      {materials.length > 0 && (
+        <button style={styles.addBtn} onClick={onAddClick}>+ Add source</button>
+      )}
     </div>
   )
 }
 
 const styles = {
   panel: { display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '12px' },
-  empty: { color: 'var(--muted2)', fontSize: '13px', textAlign: 'center', marginTop: '20px' },
+  emptyState: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '24px' },
+  emptyText: { color: 'var(--muted2)', fontSize: '13px', textAlign: 'center' },
+  emptyBtn: {
+    padding: '8px 16px', background: 'var(--accent)', border: 'none',
+    borderRadius: '8px', color: '#fff', fontSize: '13px', cursor: 'pointer',
+  },
   list: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' },
   item: {
     display: 'flex', alignItems: 'center', gap: '10px',
