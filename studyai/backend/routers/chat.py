@@ -38,7 +38,7 @@ async def send_message(
         .all()
     )
     materials_summary = "\n".join(
-        f"- {m.label}: {m.content[:200]}" for m in materials
+        f"- {m.label}: {m.content[:500]}" for m in materials
     ) or "No materials added yet."
 
     system_prompt = (

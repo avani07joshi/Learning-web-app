@@ -1,7 +1,9 @@
 import uuid
-import os
+import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
 from sqlalchemy.orm import Session
+from pypdf import PdfReader
 from database import get_db
 from models.models import Material, User
 from schemas.schemas import MaterialCreate, MaterialOut
@@ -44,6 +46,7 @@ def create_material(
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_CONTENT_TYPES = {"application/pdf"}
+MAX_TEXT_CHARS = 8000
 
 @router.post("/upload", response_model=MaterialOut)
 async def upload_material(
@@ -59,18 +62,24 @@ async def upload_material(
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
 
-    os.makedirs("/app/uploads", exist_ok=True)
-    filename = f"{uuid.uuid4()}_{file.filename}"
-    filepath = f"/app/uploads/{filename}"
+    # Extract text from PDF
+    try:
+        reader = PdfReader(io.BytesIO(content))
+        extracted = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+    except Exception:
+        extracted = ""
 
-    with open(filepath, "wb") as f:
-        f.write(content)
+    if not extracted:
+        raise HTTPException(status_code=400, detail="Could not extract text from PDF. Scanned/image PDFs are not supported.")
+
+    if len(extracted) > MAX_TEXT_CHARS:
+        extracted = extracted[:MAX_TEXT_CHARS] + "\n[truncated]"
 
     material = Material(
         user_id=current_user.id,
         type="pdf",
         label=file.filename,
-        content=filename,
+        content=extracted,
         topic=topic,
     )
     db.add(material)
