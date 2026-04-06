@@ -32,9 +32,11 @@ export default function Sidebar({ activeTopic, setActiveTopic, topics, onAddTopi
               >×</button>
             </div>
             <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: `${topic.progress_pct}%` }} />
+              <div style={{ ...styles.progressFill, width: `${topic.progress_pct}%`, background: topic.progress_pct === 100 ? 'var(--success)' : 'var(--accent)' }} />
             </div>
-            <span style={styles.progressLabel}>{topic.progress_pct}%</span>
+            <span style={{ ...styles.progressLabel, color: topic.progress_pct === 100 ? 'var(--success)' : 'var(--muted2)' }}>
+              {topic.progress_pct === 0 ? 'Just started' : topic.progress_pct === 100 ? 'Mastered ✓' : `${topic.progress_pct}% accuracy`}
+            </span>
           </div>
         ))}
 

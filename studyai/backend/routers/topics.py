@@ -63,8 +63,17 @@ def update_progress(
         QuizResult.topic == topic.name,
     ).all()
     if results:
+        total = len(results)
         correct = sum(1 for r in results if r.is_correct)
-        topic.progress_pct = round(correct / len(results) * 100)
+        accuracy = correct / total
+        # Mastered = 80%+ accuracy over at least 10 questions → 100%
+        # Otherwise scale 0-95% based on accuracy, but only after 5 questions
+        if total < 5:
+            topic.progress_pct = 0
+        elif accuracy >= 0.8 and total >= 10:
+            topic.progress_pct = 100
+        else:
+            topic.progress_pct = min(95, round(accuracy * 100))
     db.commit()
     db.refresh(topic)
     return topic
