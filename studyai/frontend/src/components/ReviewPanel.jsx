@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import api from '../api/axios'
 
 export default function ReviewPanel({ activeTopic, materials }) {
-  const [stats, setStats] = useState({ total_answered: 0, correct_count: 0, accuracy_pct: 0, weak_areas: [] })
+  const [stats, setStats] = useState(null)
   const [streak, setStreak] = useState({ study_dates: [], current_streak: 0 })
 
   useEffect(() => {
-    api.get(`/quiz/stats/${encodeURIComponent(activeTopic)}`).then(r => setStats(r.data)).catch(() => {})
+    setStats(null)
+    api.get(`/quiz/stats/${encodeURIComponent(activeTopic)}`).then(r => setStats(r.data)).catch(() => setStats({ total_answered: 0, correct_count: 0, accuracy_pct: 0, weak_areas: [] }))
     api.get('/streak').then(r => setStreak(r.data)).catch(() => {})
   }, [activeTopic])
 
@@ -22,17 +23,23 @@ export default function ReviewPanel({ activeTopic, materials }) {
     <div style={styles.panel}>
       {/* Stat cards */}
       <div style={styles.cards}>
-        {[
-          { label: 'Accuracy', value: `${stats.accuracy_pct}%`, color: 'var(--success)' },
-          { label: 'Streak', value: `${streak.current_streak}d`, color: 'var(--warning)' },
-          { label: 'Answered', value: stats.total_answered, color: 'var(--accent2)' },
-          { label: 'Materials', value: materials?.length || 0, color: 'var(--muted)' },
-        ].map(c => (
-          <div key={c.label} style={styles.card}>
-            <span style={{ ...styles.cardVal, color: c.color }}>{c.value}</span>
-            <span style={styles.cardLabel}>{c.label}</span>
-          </div>
-        ))}
+        {stats === null ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: '88px', borderRadius: '12px' }} />
+          ))
+        ) : (
+          [
+            { label: 'Accuracy', value: `${stats.accuracy_pct}%`, color: 'var(--success)' },
+            { label: 'Streak', value: `${streak.current_streak}d`, color: 'var(--warning)' },
+            { label: 'Answered', value: stats.total_answered, color: 'var(--accent2)' },
+            { label: 'Materials', value: materials?.length || 0, color: 'var(--muted)' },
+          ].map(c => (
+            <div key={c.label} style={styles.card}>
+              <span style={{ ...styles.cardVal, color: c.color }}>{c.value}</span>
+              <span style={styles.cardLabel}>{c.label}</span>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Streak calendar */}
@@ -53,7 +60,7 @@ export default function ReviewPanel({ activeTopic, materials }) {
       </div>
 
       {/* Weak areas */}
-      {stats.weak_areas?.length > 0 && (
+      {stats?.weak_areas?.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Weak Areas</div>
           <div style={styles.weakList}>

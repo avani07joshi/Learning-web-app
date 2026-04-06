@@ -6,13 +6,16 @@ export default function ChatPanel({ activeTopic, currentUser }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
   const bottomRef = useRef(null)
 
   useEffect(() => {
     setMessages([])
+    setHistoryLoading(true)
     api.get(`/chat/${encodeURIComponent(activeTopic)}`)
       .then(r => setMessages(r.data))
       .catch(() => {})
+      .finally(() => setHistoryLoading(false))
   }, [activeTopic])
 
   useEffect(() => {
@@ -45,16 +48,27 @@ export default function ChatPanel({ activeTopic, currentUser }) {
   return (
     <div style={styles.panel}>
       <div style={styles.messages}>
-        {messages.length === 0 && (
+        {historyLoading ? (
+          <div style={styles.skeletons}>
+            {[80, 60, 90, 50].map((w, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: i % 2 === 0 ? 'flex-start' : 'flex-end' }}>
+                <div className="skeleton" style={{ width: `${w}%`, height: '48px', borderRadius: '14px' }} />
+              </div>
+            ))}
+          </div>
+        ) : messages.length === 0 ? (
           <div style={styles.empty}>
             Ask anything about <strong>{activeTopic}</strong>
           </div>
-        )}
+        ) : null}
         {messages.map((m, i) => (
           <div key={m.id || i} style={{ ...styles.msgRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             {m.role === 'assistant' && <div style={styles.avatarAI}>AI</div>}
-            <div style={{ ...styles.bubble, ...(m.role === 'user' ? styles.userBubble : styles.aiBubble) }}>
-              <ReactMarkdown>{m.content}</ReactMarkdown>
+            <div
+              className={m.role === 'assistant' ? 'ai-bubble' : ''}
+              style={{ ...styles.bubble, ...(m.role === 'user' ? styles.userBubble : styles.aiBubble) }}
+            >
+              {m.role === 'assistant' ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
             </div>
             {m.role === 'user' && (
               <div style={styles.avatarUser}>
@@ -112,6 +126,7 @@ const styles = {
   panel: { display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' },
   messages: { flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' },
   empty: { color: 'var(--muted)', textAlign: 'center', marginTop: '40px', fontSize: '14px' },
+  skeletons: { display: 'flex', flexDirection: 'column', gap: '12px', padding: '8px 0' },
   msgRow: { display: 'flex', gap: '10px', alignItems: 'flex-end' },
   avatarAI: {
     width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent)',
