@@ -12,6 +12,10 @@ export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded
 
   const handleSubmit = async e => {
     e.preventDefault()
+    if (!activeTopic) {
+      addToast('Please add a topic first before adding materials')
+      return
+    }
     setLoading(true)
     try {
       if (activeTab === 'url') {
