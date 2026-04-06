@@ -42,6 +42,9 @@ def create_material(
     return material
 
 
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+ALLOWED_CONTENT_TYPES = {"application/pdf"}
+
 @router.post("/upload", response_model=MaterialOut)
 async def upload_material(
     topic: str,
@@ -49,12 +52,18 @@ async def upload_material(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+
     os.makedirs("/app/uploads", exist_ok=True)
     filename = f"{uuid.uuid4()}_{file.filename}"
     filepath = f"/app/uploads/{filename}"
 
     with open(filepath, "wb") as f:
-        content = await file.read()
         f.write(content)
 
     material = Material(

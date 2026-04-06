@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 import api from '../api/axios'
-
-function formatText(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br/>')
-}
 
 export default function ChatPanel({ activeTopic, currentUser }) {
   const [messages, setMessages] = useState([])
@@ -34,7 +29,7 @@ export default function ChatPanel({ activeTopic, currentUser }) {
       const res = await api.post('/chat', { message: msg, topic: activeTopic })
       setMessages(prev => [...prev, res.data])
     } catch {
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: 'Sorry, something went wrong.' }])
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: 'Sorry, I could not get a response. Please try again.' }])
     } finally {
       setIsLoading(false)
     }
@@ -58,10 +53,9 @@ export default function ChatPanel({ activeTopic, currentUser }) {
         {messages.map((m, i) => (
           <div key={m.id || i} style={{ ...styles.msgRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             {m.role === 'assistant' && <div style={styles.avatarAI}>AI</div>}
-            <div
-              style={{ ...styles.bubble, ...(m.role === 'user' ? styles.userBubble : styles.aiBubble) }}
-              dangerouslySetInnerHTML={{ __html: formatText(m.content) }}
-            />
+            <div style={{ ...styles.bubble, ...(m.role === 'user' ? styles.userBubble : styles.aiBubble) }}>
+              <ReactMarkdown>{m.content}</ReactMarkdown>
+            </div>
             {m.role === 'user' && (
               <div style={styles.avatarUser}>
                 {currentUser?.name?.[0]?.toUpperCase() || 'U'}
