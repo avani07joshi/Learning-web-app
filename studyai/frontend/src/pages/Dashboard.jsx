@@ -44,8 +44,8 @@ export default function Dashboard() {
       setTopics(res.data)
       setActiveTopic(name)
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to add topic'
-      addToast(msg)
+      const detail = err.response?.data?.detail
+      addToast(typeof detail === 'string' ? detail : 'Failed to add topic')
     }
   }
 

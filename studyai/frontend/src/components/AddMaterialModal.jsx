@@ -27,7 +27,8 @@ export default function AddMaterialModal({ activeTopic, onClose, onMaterialAdded
       onClose()
       addToast('Material added', 'success')
     } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to add material')
+      const detail = err.response?.data?.detail
+      addToast(typeof detail === 'string' ? detail : 'Failed to add material')
     } finally {
       setLoading(false)
     }

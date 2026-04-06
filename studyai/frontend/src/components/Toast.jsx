@@ -7,8 +7,9 @@ export function useToast() {
   const counter = useRef(0)
 
   const addToast = useCallback((message, type = 'error') => {
+    const msg = typeof message === 'string' ? message : 'An error occurred'
     const id = ++counter.current
-    setToasts(prev => [...prev, { id, message, type }])
+    setToasts(prev => [...prev, { id, message: msg, type }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }, [])
 
@@ -17,7 +18,8 @@ export function useToast() {
 }
 
 export function toast(message, type = 'error') {
-  if (_addToast) _addToast(message, type)
+  const msg = typeof message === 'string' ? message : 'An error occurred'
+  if (_addToast) _addToast(msg, type)
 }
 
 export function ToastContainer({ toasts }) {
